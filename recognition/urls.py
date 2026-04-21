@@ -7,4 +7,7 @@ urlpatterns = [
     path('recognize-plate/', views.recognize_plate_view, name='recognize_plate'),
     path('capture-frame/', views.capture_frame, name='capture_frame'),
     path('get-predictions/', views.get_predictions, name='get_predictions'),
+    path('signup/', views.signup_view, name='signup'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
 ]

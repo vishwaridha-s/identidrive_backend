@@ -10,12 +10,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .services.video import extract_frames
 from .services.detector import detect_plates
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
 from .ocr_utils import recognize_plate
 from .models import PlatePrediction
 
-# ---------------------------
-# Upload Video
-# ---------------------------
 @api_view(['POST'])
 def upload_video(request):
     video = request.FILES.get("video")
@@ -43,10 +42,6 @@ def upload_video(request):
         "video_url": video_url
     })
 
-
-# ---------------------------
-# Detect Plates (bounding box only)
-# ---------------------------
 @api_view(['POST'])
 def detect_plates_view(request):
     frame_url = request.data.get("frame_url")
@@ -63,10 +58,6 @@ def detect_plates_view(request):
 
     return Response({"boxes": boxes})
 
-
-# ---------------------------
-# Recognize Plate (OCR)
-# ---------------------------
 @api_view(['POST'])
 def recognize_plate_view(request):
 
@@ -121,9 +112,6 @@ def recognize_plate_view(request):
             "is_error": True
         })
 
-# ---------------------------
-# Capture Current Frame
-# ---------------------------
 @api_view(['POST'])
 def capture_frame(request):
     frame = request.FILES.get("frame")
@@ -146,10 +134,6 @@ def capture_frame(request):
 
     return Response({"frame_url": frame_url})
 
-
-# ---------------------------
-# History Filter
-# ---------------------------
 @api_view(['GET'])
 def get_predictions(request):
     date = request.GET.get("date")
@@ -172,3 +156,41 @@ def get_predictions(request):
     ]
 
     return Response({"results": data})
+
+@api_view(['POST'])
+def signup_view(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    email = request.data.get('email', '')
+
+    if not username or not password:
+        return Response({"error": "Username and password required"}, status=400)
+
+    if User.objects.filter(username=username).exists():
+        return Response({"error": "Username already exists"}, status=400)
+
+    user = User.objects.create_user(username=username, password=password, email=email)
+    user.save()
+    return Response({"message": "User created successfully"})
+
+@api_view(['POST'])
+def login_view(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    if not username or not password:
+        return Response({"error": "Username and password required"}, status=400)
+
+    user = authenticate(username=username, password=password)
+    if user is not None:
+        login(request, user)
+        return Response({"message": "Login successful", "username": user.username})
+    else:
+        if not User.objects.filter(username=username).exists():
+            return Response({"error": "User not found. Redirecting to signup.", "redirect_signup": True}, status=404)
+        return Response({"error": "Invalid credentials"}, status=401)
+
+@api_view(['POST'])
+def logout_view(request):
+    logout(request)
+    return Response({"message": "Logged out successfully"})
