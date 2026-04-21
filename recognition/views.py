@@ -14,8 +14,11 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from .ocr_utils import recognize_plate
 from .models import PlatePrediction
+from django.views.decorators.csrf import csrf_exempt
+
 
 @api_view(['POST'])
+@csrf_exempt
 def upload_video(request):
     video = request.FILES.get("video")
 
@@ -43,6 +46,7 @@ def upload_video(request):
     })
 
 @api_view(['POST'])
+@csrf_exempt
 def detect_plates_view(request):
     frame_url = request.data.get("frame_url")
 
@@ -59,6 +63,7 @@ def detect_plates_view(request):
     return Response({"boxes": boxes})
 
 @api_view(['POST'])
+@csrf_exempt
 def recognize_plate_view(request):
 
     try:
@@ -90,6 +95,7 @@ def recognize_plate_view(request):
         conf = result["confidence"]
 
         PlatePrediction.objects.create(
+            user=request.user if request.user.is_authenticated else None,
             video_name=os.path.basename(frame_url),
             frame_path=frame_url,
             top1=text,
@@ -113,6 +119,7 @@ def recognize_plate_view(request):
         })
 
 @api_view(['POST'])
+@csrf_exempt
 def capture_frame(request):
     frame = request.FILES.get("frame")
 
@@ -138,7 +145,10 @@ def capture_frame(request):
 def get_predictions(request):
     date = request.GET.get("date")
 
-    queryset = PlatePrediction.objects.all().order_by("-created_at")
+    if not request.user.is_authenticated:
+        return Response({"results": []})
+
+    queryset = PlatePrediction.objects.filter(user=request.user).order_by("-created_at")
 
     if date:
         parsed_date = parse_date(date)
@@ -158,6 +168,7 @@ def get_predictions(request):
     return Response({"results": data})
 
 @api_view(['POST'])
+@csrf_exempt
 def signup_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -174,6 +185,7 @@ def signup_view(request):
     return Response({"message": "User created successfully"})
 
 @api_view(['POST'])
+@csrf_exempt
 def login_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
@@ -191,6 +203,7 @@ def login_view(request):
         return Response({"error": "Invalid credentials"}, status=401)
 
 @api_view(['POST'])
+@csrf_exempt
 def logout_view(request):
     logout(request)
     return Response({"message": "Logged out successfully"})
