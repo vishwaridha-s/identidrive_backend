@@ -6,7 +6,7 @@ import json
 from django.conf import settings
 from django.http import JsonResponse
 from django.utils.dateparse import parse_date
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.response import Response
 from .services.video import extract_frames
 from .services.detector import detect_plates
@@ -160,7 +160,8 @@ def get_predictions(request):
             "video_name": p.video_name,
             "top1": p.top1,
             "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            "confidence": p.confidence
+            "confidence": p.confidence,
+            "frame_path": p.frame_path
         }
         for p in queryset
     ]
@@ -168,6 +169,7 @@ def get_predictions(request):
     return Response({"results": data})
 
 @api_view(['POST'])
+@authentication_classes([])
 @csrf_exempt
 def signup_view(request):
     username = request.data.get('username')
@@ -185,6 +187,7 @@ def signup_view(request):
     return Response({"message": "User created successfully"})
 
 @api_view(['POST'])
+@authentication_classes([])
 @csrf_exempt
 def login_view(request):
     username = request.data.get('username')
@@ -203,6 +206,7 @@ def login_view(request):
         return Response({"error": "Invalid credentials"}, status=401)
 
 @api_view(['POST'])
+@authentication_classes([]) 
 @csrf_exempt
 def logout_view(request):
     logout(request)
